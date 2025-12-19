@@ -2,10 +2,10 @@
 
 ## 1. Opis problemu
 
-Zadanie polega na znalezieniu wszystkich par wektorów binarnych (ciągów bitów o stałej długości `l`) z danego zbioru `n` wektorów, takich że odległość Hamminga między nimi wynosi dokładnie 1 (różnią się dokładnie na jednej pozycji bitowej).
+Zadanie polega na znalezieniu wszystkich par wzorców binarnych (ciągów bitów o stałej długości `l`) z danego zbioru `n` wzorców, takich że odległość Hamminga między nimi wynosi dokładnie 1 (różnią się dokładnie na jednej pozycji bitowej).
 
 **Wejście:**
-- Plik tekstowy zawierający na pierwszej linii dwie liczby oddzielone przecinkiem: `n` (liczba wektorów) i `l` (długość każdego wektora w bitach).
+- Plik tekstowy zawierający na pierwszej linii dwie liczby oddzielone przecinkiem: `n` (liczba wzorców) i `l` (długość każdego wzorca w bitach).
 - Następnie `n` linii z ciągami składającymi się z `l` znaków `'0'` i `'1'`.
 
 **Wyjście:**

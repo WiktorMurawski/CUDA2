@@ -3,8 +3,6 @@
 #include <string>
 #include <fstream>
 #include <chrono>
-#include <memory>
-#include <queue>
 #include "RadixTree.cuh"
 #include "kernels.cuh"
 
