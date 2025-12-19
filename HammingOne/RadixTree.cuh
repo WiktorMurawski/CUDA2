@@ -1,6 +1,6 @@
 ﻿struct RadixNode {
     int children[2];     // indeksy węzłów-dzieci, -1 jeśli dziecko nie istnieje
-    int vectorIndex;     // -1 jeśli nie liść, index wektora wpp
+    int vectorIndex;     // index wektora jeśli węzeł jest liściem, -1 jeśli wpp
 
     RadixNode() : vectorIndex(-1) {
         children[0] = -1;

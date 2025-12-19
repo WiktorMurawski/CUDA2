@@ -54,9 +54,6 @@ Aby przyspieszyć obliczenia, stosujemy hybrydowe podejście:
 - Użycie atomowych operacji do inkrementacji licznika wyników i zapisu par do preallokowanej tablicy (górne oszacowanie liczby par: `nl / 2`).
 - Alternatywnie: zapis wyników per-wątek do oddzielnych buforów, a następnie kompaktowanie.
 
-### Planowane optymalizacje
-- Wykorzystanie shared memory do przyspieszenia przechodzenia przez drzewo (jeśli będzie to możliwe).
-
 ## 4. Etapy implementacji
 
 1. Alokacja pamięci na GPU i przeniesienie drzewa oraz danych wejściowych.

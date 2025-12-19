@@ -33,7 +33,6 @@ void parseArguments(const int argc, const char** argv, Arguments& args);
 void printArguments(const Arguments& args);
 bool readTestFile(const std::string& filename, Data& data);
 bool timed_readTestFile(const std::string& filename, Data& data);
-bool hammingDistanceOne(size_t a_idx, size_t b_idx, const Data& data);
 RadixTree buildRadixTree(const Data& data);
 void computeWithRadixTree(const RadixTree tree, const Data& data, std::vector<std::pair<int, int>>& results);
 void printPairs(const std::vector<std::pair<int, int>> results, const Data& data);
@@ -51,14 +50,14 @@ int main(const int argc, const char** argv)
         printf("Error reading input file.\n");
         return 1;
     }
-    printf("Data size: n = %lld, l = %lld, total bits = %zu\n", data.n, data.l, data.bits.size());
+    printf("Data size: n = %lld, l = %lld, total bits = %zu\n\n", data.n, data.l, data.bits.size());
 
     RadixTree tree = buildRadixTree(data);
 
     std::vector<std::pair<int, int>> radix_results;
     computeWithRadixTree(tree, data, radix_results);
 
-    printf("Found %zu pairs with Hamming distance of 1 (radix tree).\n", radix_results.size());
+    printf("Found %zu pairs with Hamming distance of 1.\n", radix_results.size());
     if (args.verbose) {
         printPairs(radix_results, data);
     }
@@ -150,19 +149,6 @@ bool timed_readTestFile(const std::string& filename, Data& data) {
     double duration_ms = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000.0;
     if (result) printf("Reading file took: %.3f ms\n", duration_ms);
     return result;
-}
-
-bool hammingDistanceOne(size_t a_idx, size_t b_idx, const Data& data) {
-    size_t diff_count = 0;
-    for (int i = 0; i < data.l; ++i) {
-        if (data.bits[a_idx * data.l + i] != data.bits[b_idx * data.l + i]) {
-            diff_count++;
-            if (diff_count > 1) {
-                return false;
-            }
-        }
-    }
-    return diff_count == 1;
 }
 
 RadixTree buildRadixTree(const Data& data) {
