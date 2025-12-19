@@ -1,6 +1,6 @@
-struct RadixNode {
-    int children[2];     // Indices into the node array (-1 if null)
-    int vectorIndex;     // -1 if not a leaf, vector index otherwise
+﻿struct RadixNode {
+    int children[2];     // indeksy węzłów-dzieci, -1 jeśli dziecko nie istnieje
+    int vectorIndex;     // -1 jeśli nie liść, index wektora wpp
 
     RadixNode() : vectorIndex(-1) {
         children[0] = -1;
@@ -11,7 +11,7 @@ struct RadixNode {
 class RadixTree {
 private:
     std::vector<RadixNode> nodes;
-    int bitLength;
+    int vectorLength;
     int rootIndex;
 
     int allocateNode() {
@@ -20,14 +20,14 @@ private:
     }
 
 public:
-    RadixTree(int l) : bitLength(l), rootIndex(0) {
-        allocateNode(); // Root node creation
+    RadixTree(int l) : vectorLength(l), rootIndex(0) {
+        allocateNode(); // Root
     }
 
     void insert(const uint8_t* bits, int vectorIndex) {
         int currentIdx = rootIndex;
 
-        for (int i = 0; i < bitLength; ++i) {
+        for (int i = 0; i < vectorLength; ++i) {
             uint8_t bit = bits[i];
 
             if (nodes[currentIdx].children[bit] == -1) {
@@ -44,7 +44,7 @@ public:
     int search(const uint8_t* bits) const {
         int currentIdx = rootIndex;
 
-        for (int i = 0; i < bitLength; ++i) {
+        for (int i = 0; i < vectorLength; ++i) {
             uint8_t bit = bits[i];
 
             if (nodes[currentIdx].children[bit] == -1) {
@@ -58,14 +58,13 @@ public:
     }
 
     void findHammingDistanceOne(const uint8_t* bits, int queryIndex, std::vector<int>& results) const {
-        std::vector<uint8_t> modified(bitLength);
+        std::vector<uint8_t> modified(vectorLength);
 
-        for (int i = 0; i < bitLength; ++i) {
+        for (int i = 0; i < vectorLength; ++i) {
             modified[i] = bits[i];
         }
 
-        // Iterate through each bit
-        for (int i = 0; i < bitLength; ++i) {
+        for (int i = 0; i < vectorLength; ++i) {
             modified[i] = 1 - modified[i];
 
             int foundIndex = search(modified.data());
@@ -87,6 +86,6 @@ public:
     }
 
     int getBitLength() const {
-        return bitLength;
+        return vectorLength;
     }
 };

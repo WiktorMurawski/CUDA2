@@ -1,4 +1,4 @@
-﻿# Dokumentacja wstępna: Znajdowanie par wektorów binarnych o odległości Hamminga równej 1
+﻿# Dokumentacja wstępna projektu 2: Znajdowanie par wektorów binarnych o odległości Hamminga równej 1
 
 ## 1. Opis problemu
 
@@ -28,7 +28,7 @@ Istniejąca wersja CPU wykorzystuje **drzewo radixowe** (binary trie) do efektyw
   - Dla każdej takiej wersji wykonujemy dokładne wyszukiwanie w drzewie (przechodzenie po bitach).
   - Jeśli znaleziony wektor istnieje i jego indeks ≠ `i`, to jest to sąsiad.
 - Zbieramy pary z `i < j`, aby uniknąć duplikatów.
-- Złożoność: `O(nl²)` w najgorszym przypadku, ale ponieważ zazwyczaj `n > l` jest znacznie lepsza niż naiwne porównywanie wszystkich par (`O(n²l)`).
+- Złożoność: `O(nl²)`, ale ponieważ zazwyczaj `n > l` jest znacznie lepsza niż naiwne porównywanie wszystkich par (`O(n²l)`).
 
 ## 3. Planowane podejście równoległe (CUDA GPU)
 
@@ -45,9 +45,9 @@ Aby przyspieszyć obliczenia, stosujemy hybrydowe podejście:
 - Każdy wątek odpowiada za wektor o indeksie `i` i wykonuje:
   1. Pobranie swojego wektora `v`.
   2. Dla każdego z `l` możliwych flipów bitu `j` `(k = 0, ..., l-1)`:
-     - Tymczasowe „flipowanie” bitu `j`.
+     - Tymczasowe flipowanie bitu `j`.
      - Przechodzenie przez drzewo od korzenia zgodnie ze zmodyfikowanymi bitami.
-     - Jeśli dojdzie do liścia z ważnym `vectorIndex` ≠ `i`, dodaje parę `(i, foundIndex)` do globalnej listy wyników.
+     - Jeśli dojdzie do liścia z ważnym `vectorIndex` != `i`, dodaje parę `(i, foundIndex)` do globalnej listy wyników.
 - Aby uniknąć duplikatów: para dodawana tylko gdy `i < foundIndex`.
 
 ### Zbieranie wyników
@@ -56,7 +56,6 @@ Aby przyspieszyć obliczenia, stosujemy hybrydowe podejście:
 
 ### Planowane optymalizacje
 - Wykorzystanie shared memory do przyspieszenia przechodzenia przez drzewo (jeśli będzie to możliwe).
-- Zapewnienie koalescencji dostępu do pamięci dzięki płaskiej reprezentacji drzewa.
 
 ## 4. Etapy implementacji
 

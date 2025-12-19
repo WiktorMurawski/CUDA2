@@ -40,7 +40,7 @@ void printPairs(const std::vector<std::pair<int, int>> results, const Data& data
 
 int main(const int argc, const char** argv)
 {
-    dummyKernel KERNEL_LAUNCH(1, 1 ) ();
+    dummyKernel <<<1, 1>>> ();
 
     Arguments args;
     parseArguments(argc, argv, args);
