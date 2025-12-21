@@ -2,7 +2,7 @@
 
 cmake_minimum_required (VERSION 3.18)
 
-project(HammingOne LANGUAGES CXX CUDA)
+project(HammingOneProject LANGUAGES CXX CUDA)
 
 set(CMAKE_CUDA_ARCHITECTURES native)
 
@@ -13,3 +13,4 @@ endif()
 
 # Include sub-projects.
 add_subdirectory ("HammingOne")
+add_subdirectory ("HammingOne_Naive")
