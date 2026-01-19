@@ -10,19 +10,23 @@ uint64_t computeWithRadixTreeGPU(const RadixTree tree, const Data& data);
 
 int main(const int argc, const char** argv)
 {
-    Data data = prepareData(argc, argv);
+    Arguments args = parseArguments(argc, argv);
+    printArguments(args);
+    Data data = prepareData(args);
     if (!data.valid) return 1;
 
     RadixTree tree = buildRadixTree(data);
 
     {
-        uint64_t result = computeWithRadixTreeCPU(tree, data);
-        printf("On CPU: Found %zu pairs with Hamming distance of 1.\n", result);
+        printf("GPU computation:\n");
+        uint64_t result = computeWithRadixTreeGPU(tree, data);
+        printf("On GPU: Found %lld pairs with Hamming distance of 1.\n", result);
     }
 
     {
-        uint64_t result = computeWithRadixTreeGPU(tree, data);
-        printf("On GPU: Found %zu pairs with Hamming distance of 1.\n", result);
+        printf("CPU computation:\n");
+        uint64_t result = computeWithRadixTreeCPU(tree, data);
+        printf("On CPU: Found %lld pairs with Hamming distance of 1.\n", result);
     }
 
     return 0;
@@ -32,14 +36,14 @@ RadixTree buildRadixTree(const Data& data) {
     auto start = std::chrono::high_resolution_clock::now();
 
     RadixTree tree(data.l);
-    for (int i = 0; i < data.n; ++i) {
+    for (uint64_t i = 0; i < data.n; ++i) {
         tree.insert(&data.bits[i * data.l], i);
     }
 
     auto build_end = std::chrono::high_resolution_clock::now();
     double build_ms = std::chrono::duration_cast<std::chrono::microseconds>(build_end - start).count() / 1000.0;
     printf("Building radix tree took: %.3f ms\n", build_ms);
-    printf("Tree has %d nodes\n", tree.getNodeCount());
+    printf("Tree has %lld nodes\n", tree.getNodeCount());
 
     return tree;
 }
@@ -48,11 +52,11 @@ uint64_t computeWithRadixTreeCPU(const RadixTree tree, const Data& data) {
     auto start = std::chrono::high_resolution_clock::now();
     uint64_t result = 0;
 
-    for (int i = 0; i < data.n; ++i) {
-        std::vector<int> neighbors;
+    for (uint64_t i = 0; i < data.n; ++i) {
+        std::vector<uint64_t> neighbors;
         tree.findHammingDistanceOne(&data.bits[i * data.l], i, neighbors);
 
-        for (int j : neighbors) {
+        for (uint64_t j : neighbors) {
             if (i < j) {
                 result++;
             }

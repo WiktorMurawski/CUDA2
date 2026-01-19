@@ -24,19 +24,15 @@ struct Data {
     bool valid = true;
 };
 
-Data prepareData(const int argc, const char** argv);
-void parseArguments(const int argc, const char** argv, Arguments& args);
+Data prepareData(Arguments args);
+Arguments parseArguments(const int argc, const char** argv);
 void printArguments(const Arguments& args);
 bool readTestFile(const std::string& filename, Data& data);
 bool timed_readTestFile(const std::string& filename, Data& data);
 void printPairs(const std::vector<std::pair<int, int>> results, const Data& data);
 void countUniqueVectors(const Data& data);
 
-Data prepareData(const int argc, const char** argv) {
-    Arguments args;
-    parseArguments(argc, argv, args);
-    printArguments(args);
-
+Data prepareData(Arguments args) {
     Data data;
     if (!timed_readTestFile(args.inputFile, data)) {
         fprintf(stderr, "Error reading input file.\n");
@@ -48,13 +44,15 @@ Data prepareData(const int argc, const char** argv) {
     return data;
 }
 
-void parseArguments(const int argc, const char** argv, Arguments& args)
+Arguments parseArguments(const int argc, const char** argv)
 {
     if (argc < 2)
     {
         fprintf(stderr, "Usage: %s <input file> [-c] [-v]", argv[0]);
         exit(1);
     }
+
+    Arguments args;
 
     args.inputFile = strdup(argv[1]);
 
@@ -70,6 +68,8 @@ void parseArguments(const int argc, const char** argv, Arguments& args)
             args.verbose = true;
         }
     }
+
+    return args;
 }
 
 void printArguments(const Arguments& args)
@@ -129,7 +129,9 @@ bool readTestFile(const std::string& filename, Data& data) {
 
 bool timed_readTestFile(const std::string& filename, Data& data) {
     auto start = std::chrono::high_resolution_clock::now();
+
     bool result = readTestFile(filename, data);
+
     auto end = std::chrono::high_resolution_clock::now();
     double duration_ms = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000.0;
     if (result) printf("Reading file took: %.3f ms\n", duration_ms);

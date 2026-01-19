@@ -1,37 +1,40 @@
 ﻿struct RadixNode {
-    int children[2];     // indeksy węzłów-dzieci, -1 jeśli dziecko nie istnieje
-    int vectorIndex;     // index wektora jeśli węzeł jest liściem, -1 jeśli wpp
+    int64_t children[2];     // indeksy węzłów-dzieci, -1 jeśli dziecko nie istnieje
+    int64_t vectorIndex;     // index wektora jeśli węzeł jest liściem, -1 jeśli wpp
+    int64_t vectorCount;     // liczba wektorów przechowywanych w poddrzewie tego węzła
 
-    RadixNode() : vectorIndex(-1) {
+    RadixNode() {
         children[0] = -1;
         children[1] = -1;
+        vectorIndex = -1;
+        vectorCount = 0;
     }
 };
 
 class RadixTree {
 private:
     std::vector<RadixNode> nodes;
-    int vectorLength;
-    int rootIndex;
+    uint64_t vectorLength;
+    uint64_t rootIndex;
 
-    int allocateNode() {
+    uint64_t allocateNode() {
         nodes.push_back(RadixNode());
-        return (int)nodes.size() - 1;
+        return (uint64_t)nodes.size() - 1;
     }
 
 public:
-    RadixTree(int l) : vectorLength(l), rootIndex(0) {
+    RadixTree(uint64_t l) : vectorLength(l), rootIndex(0) {
         allocateNode(); // Root
     }
 
-    void insert(const uint8_t* bits, int vectorIndex) {
-        int currentIdx = rootIndex;
+    void insert(const uint8_t* bits, uint64_t vectorIndex) {
+        uint64_t currentIdx = rootIndex;
 
-        for (int i = 0; i < vectorLength; ++i) {
+        for (uint64_t i = 0; i < vectorLength; ++i) {
             uint8_t bit = bits[i];
 
             if (nodes[currentIdx].children[bit] == -1) {
-                int newNodeIdx = allocateNode();
+                uint64_t newNodeIdx = allocateNode();
                 nodes[currentIdx].children[bit] = newNodeIdx;
             }
 
@@ -41,10 +44,10 @@ public:
         nodes[currentIdx].vectorIndex = vectorIndex;
     }
 
-    int search(const uint8_t* bits) const {
-        int currentIdx = rootIndex;
+    int64_t search(const uint8_t* bits) const {
+        uint64_t currentIdx = rootIndex;
 
-        for (int i = 0; i < vectorLength; ++i) {
+        for (uint64_t i = 0; i < vectorLength; ++i) {
             uint8_t bit = bits[i];
 
             if (nodes[currentIdx].children[bit] == -1) {
@@ -57,17 +60,17 @@ public:
         return nodes[currentIdx].vectorIndex;
     }
 
-    void findHammingDistanceOne(const uint8_t* bits, int queryIndex, std::vector<int>& results) const {
+    void findHammingDistanceOne(const uint8_t* bits, uint64_t queryIndex, std::vector<uint64_t>& results) const {
         std::vector<uint8_t> modified(vectorLength);
 
-        for (int i = 0; i < vectorLength; ++i) {
+        for (uint64_t i = 0; i < vectorLength; ++i) {
             modified[i] = bits[i];
         }
 
-        for (int i = 0; i < vectorLength; ++i) {
+        for (uint64_t i = 0; i < vectorLength; ++i) {
             modified[i] = 1 - modified[i];
 
-            int foundIndex = search(modified.data());
+            int64_t foundIndex = search(modified.data());
 
             if (foundIndex != -1 && foundIndex != queryIndex) {
                 results.push_back(foundIndex);
@@ -81,11 +84,11 @@ public:
         return nodes;
     }
 
-    int getNodeCount() const {
+    uint64_t getNodeCount() const {
         return nodes.size();
     }
 
-    int getBitLength() const {
+    uint64_t getBitLength() const {
         return vectorLength;
     }
 };
