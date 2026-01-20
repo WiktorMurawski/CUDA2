@@ -28,15 +28,15 @@ int main(const int argc, const char** argv)
     if (!data.valid) return 1;
 
     { // GPU
-        printf("GPU computation:\n");
+        printf("\nGPU computation:\n");
         uint64_t result = computeNaiveGPU(data);
-        printf("On GPU: Found %lld pairs with Hamming distance of 1.\n\n", result);
+        printf("On GPU: Found %lld pairs with Hamming distance of 1.\n", result);
     }
 
     if (args.cpu) { // CPU
-        printf("CPU computation:\n");
+        printf("\nCPU computation:\n");
         uint64_t result = computeNaiveCPU(data);
-        printf("On CPU: Found %lld pairs with Hamming distance of 1.\n\n", result);
+        printf("On CPU: Found %lld pairs with Hamming distance of 1.\n", result);
     }
 
     return 0;
