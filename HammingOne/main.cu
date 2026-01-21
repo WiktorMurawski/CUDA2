@@ -31,22 +31,19 @@ int main(const int argc, const char** argv)
     RadixTree tree = buildRadixTree(data);
 
     {
+        printf("\nGPU computation:\n");
         try {
-            printf("\nGPU computation:\n");
             uint64_t result = computeWithRadixTreeGPU(tree, data);
-            printf("On GPU: Found %lld pairs with Hamming distance of 1.\n", result);
+            printf("On GPU: Found %lld pairs with Hamming distance of 1.\n\n", result);
         }
         catch (const std::exception& e) {
-            fprintf(stderr, "GPU computation failed: %s\n", e.what());
+            fprintf(stderr, "GPU computation failed: %s\n\n", e.what());
             return 1;
         }
-        //printf("\nGPU computation:\n");
-        //uint64_t result = computeWithRadixTreeGPU(tree, data);
-        //printf("On GPU: Found %lld pairs with Hamming distance of 1.\n", result);
     }
 
-    {
-        printf("\nCPU computation:\n");
+    if (args.cpu) { // CPU
+        printf("CPU computation:\n");
         uint64_t result = computeWithRadixTreeCPU(tree, data);
         printf("On CPU: Found %lld pairs with Hamming distance of 1.\n", result);
     }
@@ -106,80 +103,83 @@ uint64_t computeWithRadixTreeGPU(const RadixTree& tree, const Data& data) {
 
     uint64_t result = 0;
 
+    cudaEvent_t start_copy = nullptr, stop_copy = nullptr;
+    cudaEvent_t start_compute = nullptr, stop_compute = nullptr;
+
     try {
+        // Timery
+        CUDA_CHECK(cudaEventCreate(&start_copy));
+        CUDA_CHECK(cudaEventCreate(&stop_copy));
+        CUDA_CHECK(cudaEventCreate(&start_compute));
+        CUDA_CHECK(cudaEventCreate(&stop_compute));
+        auto chrono_start = std::chrono::high_resolution_clock::now();
+
+        // Alokacja pamięci
         CUDA_CHECK(cudaMalloc(&d_bits, data.n * data.l * sizeof(uint8_t)));
         CUDA_CHECK(cudaMalloc(&d_nodes, tree.getNodeCount() * sizeof(RadixNode)));
         CUDA_CHECK(cudaMalloc(&d_results, data.n * sizeof(uint64_t)));
 
         h_results = new uint64_t[data.n];
 
+        CUDA_CHECK(cudaEventRecord(start_copy));
+
+        // Kopiowanie drzewa i danych na GPU
         CUDA_CHECK(cudaMemcpy(d_bits, data.bits.data(), data.n * data.l * sizeof(uint8_t), cudaMemcpyHostToDevice));
         CUDA_CHECK(cudaMemcpy(d_nodes, tree.getNodes().data(), tree.getNodeCount() * sizeof(RadixNode), cudaMemcpyHostToDevice));
+        
+        CUDA_CHECK(cudaEventRecord(stop_copy));
+        CUDA_CHECK(cudaEventSynchronize(stop_copy));
 
         int threadsPerBlock = 256;
         int blocksPerGrid = (data.n + threadsPerBlock - 1) / threadsPerBlock;
         
-        dummyKernel << <blocksPerGrid, threadsPerBlock >> > ();
-        CUDA_CHECK(cudaGetLastError());
-        CUDA_CHECK(cudaDeviceSynchronize());
+        CUDA_CHECK(cudaEventRecord(start_compute));
 
+        // Uruchomienie kernela
         hammingSearchKernel<<<blocksPerGrid, threadsPerBlock >>>(d_bits, data.n, data.l, d_results, d_nodes);
-        CUDA_CHECK(cudaGetLastError());
-        CUDA_CHECK(cudaDeviceSynchronize());
 
+        CUDA_CHECK(cudaGetLastError());
+        CUDA_CHECK(cudaEventRecord(stop_compute));
+        CUDA_CHECK(cudaEventSynchronize(stop_compute));
+
+        // Kopiowanie wyników z powrotem na CPU
         CUDA_CHECK(cudaMemcpy(h_results, d_results, data.n * sizeof(uint64_t), cudaMemcpyDeviceToHost));
+
+        auto chrono_mid = std::chrono::high_resolution_clock::now();
 
         for(uint64_t i = 0; i < data.n; ++i) {
             result += h_results[i];
         }
         result /= 2;
 
-        cudaFree(d_bits);
-        cudaFree(d_results);
-        cudaFree(d_nodes);
-        delete[] h_results;
+        auto chrono_end = std::chrono::high_resolution_clock::now();
+        double cpu_sum_ms = std::chrono::duration_cast<std::chrono::microseconds>(chrono_end - chrono_mid).count() / 1000.0;
+        double total_ms = std::chrono::duration_cast<std::chrono::microseconds>(chrono_end - chrono_start).count() / 1000.0;
+
+        float copy_ms = 0, compute_ms = 0;
+        CUDA_CHECK(cudaEventElapsedTime(&copy_ms, start_copy, stop_copy));
+        CUDA_CHECK(cudaEventElapsedTime(&compute_ms, start_compute, stop_compute));
+
+        printf("Data copy time: %.3f ms\n", copy_ms);
+        printf("Searching for pairs took: %.3f ms\n", compute_ms);
+        //printf("Summing results from threads took: %.3f ms\n", cpu_sum_ms);
+        printf("Total operation time: %.3f ms\n", total_ms);
+
+        if (d_bits) CUDA_CHECK(cudaFree(d_bits)); d_bits = nullptr;
+        if (d_results) CUDA_CHECK(cudaFree(d_results)); d_results = nullptr;
+        if (d_nodes) CUDA_CHECK(cudaFree(d_nodes)); d_nodes = nullptr;
+        delete[] h_results; h_results = nullptr;
     }
-    catch (...) {
-        cudaFree(d_bits);
-        cudaFree(d_results);
-        cudaFree(d_nodes);
-        delete[] h_results;
+    catch (const std::exception& e) {
+        fprintf(stderr, "GPU computation failed: %s\n", e.what());
+
+        if (d_bits) cudaFree(d_bits); d_bits = nullptr;
+        if (d_results) cudaFree(d_results); d_results = nullptr;
+        if (d_nodes) cudaFree(d_nodes); d_nodes = nullptr;
+        delete[] h_results; h_results = nullptr;
 
         throw;
     }
 
     return result;
 }
-
-//uint64_t benchmarkKernel(const char* name, /* kernel params */) {
-//    // Warmup run (don't time this)
-//    myKernel << <... >> > (...);
-//    cudaDeviceSynchronize();
-//
-//    // Multiple timed runs
-//    const int numRuns = 5;
-//    float totalTime = 0;
-//
-//    cudaEvent_t start, stop;
-//    cudaEventCreate(&start);
-//    cudaEventCreate(&stop);
-//
-//    for (int run = 0; run < numRuns; run++) {
-//        // Optional: reset L2 cache between runs
-//        // cudaDeviceSetCacheConfig(cudaFuncCachePreferNone);
-//
-//        cudaEventRecord(start);
-//        myKernel << <... >> > (...);
-//        cudaEventRecord(stop);
-//        cudaEventSynchronize(stop);
-//
-//        float ms;
-//        cudaEventElapsedTime(&ms, start, stop);
-//        totalTime += ms;
-//    }
-//
-//    printf("%s: avg %.3f ms\n", name, totalTime / numRuns);
-//
-//    cudaEventDestroy(start);
-//    cudaEventDestroy(stop);
-//}

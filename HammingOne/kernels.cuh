@@ -1,8 +1,6 @@
 ﻿#include <cuda_runtime.h>
 #include <device_launch_parameters.h>
 
-__global__ void dummyKernel() {}
-
 __global__ void hammingSearchKernel(const uint8_t* bits, uint64_t n, uint64_t l, uint64_t* results, const RadixNode* nodes) {
     uint64_t i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i >= n) return;
