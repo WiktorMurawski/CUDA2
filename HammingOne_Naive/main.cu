@@ -29,7 +29,7 @@ int main(const int argc, const char** argv)
 
     { // GPU
         printf("\nGPU computation:\n");
-        uint64_t result = computeNaiveGPU(data);
+        uint64_t result = computeNaiveGPU(data, args.threads);
         printf("On GPU: Found %lld pairs with Hamming distance of 1.\n", result);
     }
 

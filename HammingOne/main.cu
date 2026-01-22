@@ -20,6 +20,7 @@
 RadixTree buildRadixTree(const Data& data);
 uint64_t computeWithRadixTreeCPU(const RadixTree& tree, const Data& data);
 uint64_t computeWithRadixTreeGPU(const RadixTree& tree, const Data& data, const uint16_t user_threads);
+void displayExamplePairs(const RadixTree & tree, const Data & data, int numExamples = 10);
 
 int main(const int argc, const char** argv)
 {
@@ -42,8 +43,13 @@ int main(const int argc, const char** argv)
         printf("On CPU: Found %lld pairs with Hamming distance of 1.\n", result);
     }
 
+    if (args.verbose) {
+        displayExamplePairs(tree, data, 10);
+    }
+
     return 0;
 }
+
 
 RadixTree buildRadixTree(const Data& data) {
     auto start = std::chrono::high_resolution_clock::now();
@@ -101,7 +107,7 @@ uint64_t computeWithRadixTreeGPU(const RadixTree& tree, const Data& data, const 
     cudaEvent_t start_compute = nullptr, stop_compute = nullptr;
 
     try {
-        // Timery
+        // Stworzenie eventów do pomiaru czasu
         CUDA_CHECK(cudaEventCreate(&start_copy));
         CUDA_CHECK(cudaEventCreate(&stop_copy));
         CUDA_CHECK(cudaEventCreate(&start_compute));
@@ -120,18 +126,27 @@ uint64_t computeWithRadixTreeGPU(const RadixTree& tree, const Data& data, const 
         CUDA_CHECK(cudaMemcpy(d_nodes, tree.getNodes().data(), tree.getNodeCount() * sizeof(RadixNode), cudaMemcpyHostToDevice));
         CUDA_CHECK(cudaEventRecord(stop_copy));
         CUDA_CHECK(cudaEventSynchronize(stop_copy));
+        uint64_t rootIndex = tree.getRootIndex();
 
         int threadsPerBlock = 1024;
         if (user_threads > 0) {
             threadsPerBlock = user_threads;
         }
         int blocksPerGrid = (data.n + threadsPerBlock - 1) / threadsPerBlock;
-        
-        //printf("Kernel launch - %d blocks per grid, % threads per block", blocksPerGrid, threadsPerBlock);
 
+        dim3 blocks_dim3(blocksPerGrid);
+        dim3 threads_dim3(threadsPerBlock);
+        
         // Uruchomienie kernela
         CUDA_CHECK(cudaEventRecord(start_compute));
-        hammingSearchKernel<<<blocksPerGrid, threadsPerBlock >>>(d_bits, data.n, data.l, d_results, d_nodes);
+        if (data.l <= MAX_LOCAL_VECTOR_LENGTH) {
+            hammingSearchKernelFast <<<blocks_dim3, threads_dim3>>> (d_bits, data.n, data.l, d_results, d_nodes, rootIndex);
+            printf("Kernel hammingSearchKernelFast launched - %d blocks per grid, %d threads per block\n", blocksPerGrid, threadsPerBlock);
+        }
+        else {
+            hammingSearchKernelFallback <<<blocks_dim3, threads_dim3 >>> (d_bits, data.n, data.l, d_results, d_nodes, rootIndex);
+            printf("Kernel hammingSearchKernelFallback launched - %d blocks per grid, %d threads per block\n", blocksPerGrid, threadsPerBlock);
+        }
         CUDA_CHECK(cudaGetLastError());
         CUDA_CHECK(cudaEventRecord(stop_compute));
         CUDA_CHECK(cudaEventSynchronize(stop_compute));
@@ -176,4 +191,45 @@ uint64_t computeWithRadixTreeGPU(const RadixTree& tree, const Data& data, const 
     }
 
     return result;
+}
+
+void displayExamplePairs(const RadixTree& tree, const Data& data, int numExamples) {
+    printf("\n=== Example pairs with Hamming distance 1 ===\n");
+
+    int pairsFound = 0;
+
+    for (uint64_t i = 0; i < data.n && pairsFound < numExamples; ++i) {
+        std::vector<uint64_t> neighbors;
+        tree.findHammingDistanceOne(&data.bits[i * data.l], i, neighbors);
+
+        for (uint64_t j : neighbors) {
+            if (i < j && pairsFound < numExamples) {
+                printf("Pair %2d: vectors %llu and %llu\n", pairsFound + 1, i, j);
+
+                printf("  Vector %6llu: ", i);
+                for (uint64_t k = 0; k < data.l; ++k) {
+                    printf("%d", data.bits[i * data.l + k]);
+                }
+                printf("\n  Vector %6llu: ", j);
+                for (uint64_t k = 0; k < data.l; ++k) {
+                    printf("%d", data.bits[j * data.l + k]);
+                }
+
+                int diffPos = -1;
+                for (uint64_t k = 0; k < data.l; ++k) {
+                    if (data.bits[i * data.l + k] != data.bits[j * data.l + k]) {
+                        diffPos = k;
+                        break;
+                    }
+                }
+                printf("\n  Difference at position %d\n\n", diffPos);
+
+                pairsFound++;
+            }
+        }
+    }
+
+    if (pairsFound == 0) {
+        printf("No pairs found!\n");
+    }
 }
