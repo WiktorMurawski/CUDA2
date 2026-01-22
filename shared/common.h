@@ -10,11 +10,14 @@
 
 #define VERBOSE_LIMIT 10
 
+#define DEFAULT_THREADS 1024
+
 struct Arguments
 {
     char* inputFile = nullptr;
     bool cpu = false;
     bool verbose = false;
+    uint16_t threads = 1024;
 };
 
 struct Data {
@@ -25,6 +28,7 @@ struct Data {
 };
 
 Data prepareData(Arguments args);
+void usage(const char* argv0);
 Arguments parseArguments(const int argc, const char** argv);
 void printArguments(const Arguments& args);
 bool readTestFile(const std::string& filename, Data& data);
@@ -44,11 +48,15 @@ Data prepareData(Arguments args) {
     return data;
 }
 
+void usage(const char* argv0) {
+    fprintf(stderr, "Usage: %s <input file> [-c] [-v] [-t <threads_per_block>]", argv0);
+}
+
 Arguments parseArguments(const int argc, const char** argv)
 {
     if (argc < 2)
     {
-        fprintf(stderr, "Usage: %s <input file> [-c] [-v]", argv[0]);
+        usage(argv[0]);
         exit(1);
     }
 
@@ -66,6 +74,15 @@ Arguments parseArguments(const int argc, const char** argv)
         else if (arg == "-v")
         {
             args.verbose = true;
+        }
+        else if (arg == "-t" && i + 1 < argc)
+        {
+            args.threads = atoi(argv[++i]);
+        }
+        else
+        {
+            fprintf(stderr, "Unknown argument: %s\n", argv[i]);
+            exit(1);
         }
     }
 

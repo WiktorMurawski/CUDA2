@@ -19,7 +19,7 @@
 
 RadixTree buildRadixTree(const Data& data);
 uint64_t computeWithRadixTreeCPU(const RadixTree& tree, const Data& data);
-uint64_t computeWithRadixTreeGPU(const RadixTree& tree, const Data& data);
+uint64_t computeWithRadixTreeGPU(const RadixTree& tree, const Data& data, const uint16_t user_threads);
 
 int main(const int argc, const char** argv)
 {
@@ -32,14 +32,8 @@ int main(const int argc, const char** argv)
 
     {
         printf("\nGPU computation:\n");
-        try {
-            uint64_t result = computeWithRadixTreeGPU(tree, data);
-            printf("On GPU: Found %lld pairs with Hamming distance of 1.\n\n", result);
-        }
-        catch (const std::exception& e) {
-            fprintf(stderr, "GPU computation failed: %s\n\n", e.what());
-            return 1;
-        }
+        uint64_t result = computeWithRadixTreeGPU(tree, data, args.threads);
+        printf("On GPU: Found %lld pairs with Hamming distance of 1.\n\n", result);
     }
 
     if (args.cpu) { // CPU
@@ -94,7 +88,7 @@ uint64_t computeWithRadixTreeCPU(const RadixTree& tree, const Data& data) {
     return result;
 }
 
-uint64_t computeWithRadixTreeGPU(const RadixTree& tree, const Data& data) {
+uint64_t computeWithRadixTreeGPU(const RadixTree& tree, const Data& data, const uint16_t user_threads) {
     uint8_t* d_bits = nullptr;
     RadixNode* d_nodes = nullptr;
     uint64_t* d_results = nullptr;
@@ -118,26 +112,26 @@ uint64_t computeWithRadixTreeGPU(const RadixTree& tree, const Data& data) {
         CUDA_CHECK(cudaMalloc(&d_bits, data.n * data.l * sizeof(uint8_t)));
         CUDA_CHECK(cudaMalloc(&d_nodes, tree.getNodeCount() * sizeof(RadixNode)));
         CUDA_CHECK(cudaMalloc(&d_results, data.n * sizeof(uint64_t)));
-
         h_results = new uint64_t[data.n];
 
-        CUDA_CHECK(cudaEventRecord(start_copy));
-
         // Kopiowanie drzewa i danych na GPU
+        CUDA_CHECK(cudaEventRecord(start_copy));
         CUDA_CHECK(cudaMemcpy(d_bits, data.bits.data(), data.n * data.l * sizeof(uint8_t), cudaMemcpyHostToDevice));
         CUDA_CHECK(cudaMemcpy(d_nodes, tree.getNodes().data(), tree.getNodeCount() * sizeof(RadixNode), cudaMemcpyHostToDevice));
-        
         CUDA_CHECK(cudaEventRecord(stop_copy));
         CUDA_CHECK(cudaEventSynchronize(stop_copy));
 
-        int threadsPerBlock = 256;
+        int threadsPerBlock = 1024;
+        if (user_threads > 0) {
+            threadsPerBlock = user_threads;
+        }
         int blocksPerGrid = (data.n + threadsPerBlock - 1) / threadsPerBlock;
         
-        CUDA_CHECK(cudaEventRecord(start_compute));
+        //printf("Kernel launch - %d blocks per grid, % threads per block", blocksPerGrid, threadsPerBlock);
 
         // Uruchomienie kernela
+        CUDA_CHECK(cudaEventRecord(start_compute));
         hammingSearchKernel<<<blocksPerGrid, threadsPerBlock >>>(d_bits, data.n, data.l, d_results, d_nodes);
-
         CUDA_CHECK(cudaGetLastError());
         CUDA_CHECK(cudaEventRecord(stop_compute));
         CUDA_CHECK(cudaEventSynchronize(stop_compute));

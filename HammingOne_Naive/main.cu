@@ -17,7 +17,7 @@
     } while(0)
 
 uint64_t computeNaiveCPU(const Data& data);
-uint64_t computeNaiveGPU(const Data& data);
+uint64_t computeNaiveGPU(const Data& data, const uint16_t user_threads);
 //bool isHammingDistanceOne(size_t a_idx, size_t b_idx, const Data& data);
 
 int main(const int argc, const char** argv)
@@ -29,14 +29,8 @@ int main(const int argc, const char** argv)
 
     { // GPU
         printf("\nGPU computation:\n");
-        try {
-            uint64_t result = computeNaiveGPU(data);
-            printf("On GPU: Found %lld pairs with Hamming distance of 1.\n", result);
-        }
-        catch (const std::exception& e) {
-            fprintf(stderr, "GPU computation failed: %s\n", e.what());
-            return 1;
-        }
+        uint64_t result = computeNaiveGPU(data);
+        printf("On GPU: Found %lld pairs with Hamming distance of 1.\n", result);
     }
 
     if (args.cpu) { // CPU
@@ -80,7 +74,7 @@ uint64_t computeNaiveCPU(const Data& data) {
     return result;
 }
 
-uint64_t computeNaiveGPU(const Data& data) {
+uint64_t computeNaiveGPU(const Data& data, const uint16_t user_threads) {
     uint8_t* d_bits = nullptr;
     uint64_t* d_results = nullptr;
     uint64_t* h_results = nullptr;
@@ -110,7 +104,10 @@ uint64_t computeNaiveGPU(const Data& data) {
         CUDA_CHECK(cudaEventRecord(stop_copy));
         CUDA_CHECK(cudaEventSynchronize(stop_copy));
 
-        int threadsPerBlock = 256;
+        int threadsPerBlock = 1024;
+        if (user_threads > 0) {
+            threadsPerBlock = user_threads;
+        }
         int blocksPerGrid = (data.n + threadsPerBlock - 1) / threadsPerBlock;
 
         CUDA_CHECK(cudaEventRecord(start_compute));
@@ -148,7 +145,9 @@ uint64_t computeNaiveGPU(const Data& data) {
 
         return total;
     }
-    catch (...) {
+    catch (const std::exception& e) {
+        fprintf(stderr, "GPU computation failed: %s\n", e.what());
+
         if (start_copy) cudaEventDestroy(start_copy); start_copy = nullptr;
         if (stop_copy) cudaEventDestroy(stop_copy); stop_copy = nullptr;
         if (start_compute) cudaEventDestroy(start_compute); start_compute = nullptr;
