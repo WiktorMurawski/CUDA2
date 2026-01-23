@@ -36,8 +36,9 @@ __global__ void hammingSearchKernelFallback(const uint8_t* bits, uint64_t n, uin
     uint64_t i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i >= n) return;
 
-    uint64_t result = 0;
     uint8_t* queryVector = (uint8_t*)&bits[i * l];
+
+    uint64_t result = 0;
 
     for (uint64_t k = 0; k < l; ++k) {
         queryVector[k] ^= 1;
