@@ -1,5 +1,6 @@
 ﻿#include <cuda_runtime.h>
 #include <device_launch_parameters.h>
+#include "RadixTree.cuh"
 
 #define MAX_LOCAL_VECTOR_LENGTH 8192
 

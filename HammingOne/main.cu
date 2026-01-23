@@ -31,7 +31,7 @@ int main(const int argc, const char** argv)
 
     RadixTree tree = buildRadixTree(data);
 
-    {
+    { // GPU
         printf("\nGPU computation:\n");
         uint64_t result = computeWithRadixTreeGPU(tree, data, args.threads);
         printf("On GPU: Found %lld pairs with Hamming distance of 1.\n\n", result);

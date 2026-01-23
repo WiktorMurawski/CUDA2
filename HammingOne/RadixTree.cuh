@@ -1,4 +1,5 @@
-﻿#include <unordered_map>
+﻿#pragma once
+#include <unordered_map>
 #include <vector>
 
 struct RadixNode {
