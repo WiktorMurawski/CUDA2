@@ -174,6 +174,10 @@ uint64_t computeWithRadixTreeGPU(const RadixTree& tree, const Data& data, const 
         //printf("Summing results from threads took: %.3f ms\n", cpu_sum_ms);
         printf("Total operation time: %.3f ms\n", total_ms);
 
+        if (start_copy) CUDA_CHECK(cudaEventDestroy(start_copy)); start_copy = nullptr;
+        if (stop_copy) CUDA_CHECK(cudaEventDestroy(stop_copy)); stop_copy = nullptr;
+        if (start_compute) CUDA_CHECK(cudaEventDestroy(start_compute)); start_compute = nullptr;
+        if (stop_compute) CUDA_CHECK(cudaEventDestroy(stop_compute)); stop_compute = nullptr;
         if (d_bits) CUDA_CHECK(cudaFree(d_bits)); d_bits = nullptr;
         if (d_results) CUDA_CHECK(cudaFree(d_results)); d_results = nullptr;
         if (d_nodes) CUDA_CHECK(cudaFree(d_nodes)); d_nodes = nullptr;
@@ -182,6 +186,10 @@ uint64_t computeWithRadixTreeGPU(const RadixTree& tree, const Data& data, const 
     catch (const std::exception& e) {
         fprintf(stderr, "GPU computation failed: %s\n", e.what());
 
+        if (start_copy) cudaEventDestroy(start_copy); start_copy = nullptr;
+        if (stop_copy) cudaEventDestroy(stop_copy); stop_copy = nullptr;
+        if (start_compute) cudaEventDestroy(start_compute); start_compute = nullptr;
+        if (stop_compute) cudaEventDestroy(stop_compute); stop_compute = nullptr;
         if (d_bits) cudaFree(d_bits); d_bits = nullptr;
         if (d_results) cudaFree(d_results); d_results = nullptr;
         if (d_nodes) cudaFree(d_nodes); d_nodes = nullptr;
